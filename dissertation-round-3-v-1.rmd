@@ -1,0 +1,531 @@
+---
+title: "dissertation data from mturk round 3"
+output: github_document
+---
+## GitHub Documents
+
+This is an R Markdown format used for publishing markdown documents to GitHub. 
+When you click the **Knit** button all R code chunks are run and a markdown file 
+(.md) suitable for publishing to GitHub is generated.
+
+## Setup 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(stdmod)      # for computing the standardized moderation effect conveniently
+library(lavaan)      # for doing path analysis in lavaan
+library(semTools)    # for HTMT heterotrait monotrait ratio
+library(ltm)         # for Cronbach's alpha
+library(psych)       # for summary tables
+library(dplyr)       # for simple counts
+library(freqtables)  # for frequency tables
+
+setwd("C:/Users/pwcol/OneDrive/Documents/Academics/Shoja-dissertation-prep-spring2023")
+mturk_round_3 <- read.csv("mturk-round-3-r-import.csv")
+mturk_round_3 <- mturk_round_3[-320, ]
+```
+
+## CFA full 
+```{r CFA}
+cfa_model <- "
+THP =~ THP_01 + THP_02 + THP_03 + THP_04 + THP_05 + THP_06 + THP_07 + THP_08 + THP_09
+SLB =~ SLB_01 + SLB_02 + SLB_03 + SLB_04 + SLB_05 + SLB_06 + SLB_07 
+TL =~ TL_01 + TL_02 + TL_03 + TL_04 + TL_05 + TL_06 + TL_07 + TL_08 + TL_09 + TL_10
+TT =~ TT_01 + TT_02 + TT_03 + TT_04 + TT_05 + TT_06 + TT_07 + TT_08 + TT_09 + TT_10
+TC =~ TC_02 + TC_03 + TC_04 + TC_05 + TC_07 + TC_08
+TSC =~ TSC_01 + TSC_02 + TSC_03 + TSC_04 + TSC_05 + TSC_06 + TSC_07 + TSC_08 + TSC_09 
+        + TSC_10 + TSC_11 + TSC_12 + TSC_13 + TSC_14 + TSC_15 + TSC_16
+TP =~ TP_03 + TP_04 + TP_05 + TP_06 + TP_07
+  "
+cfa_results <- cfa(model = cfa_model, data = mturk_round_3)
+summary(cfa_results, standardized = TRUE, fit.measures = TRUE, ci=TRUE)
+lavInspect(cfa_results, "cor.lv")
+
+```
+## Cronbach a: all items
+
+```{r}
+# Calculate Cronbach's Alpha for all items 
+
+print("Cronbach's Alpha for all THP Team Performance")
+cronbach.alpha(mturk_round_3[1:319 ,
+                             c('THP_01','THP_02','THP_03','THP_04','THP_05','THP_06','THP_07','THP_08','THP_09')])
+
+print("Cronbach's Alpha for all SLB Servant Leadership Behaviors")
+cronbach.alpha(mturk_round_3[1:319 , 
+                             c('SLB_01','SLB_02','SLB_03','SLB_04','SLB_05','SLB_06','SLB_07')])
+
+print("Cronbach's Alpha for all TL Trust in Leader")
+cronbach.alpha(mturk_round_3[1:319 , 
+                             c('TL_01','TL_02','TL_03','TL_04','TL_05','TL_06','TL_07','TL_08','TL_09','TL_10')])
+
+print("Cronbach's Alpha for all TT Trust in Team")
+cronbach.alpha(mturk_round_3[1:319 ,
+                             c('TT_01','TT_02','TT_03','TT_04','TT_05','TT_06','TT_07','TT_08','TT_09','TT_10')])
+
+print("Cronbach's Alpha for all TC Team Cohesion")
+cronbach.alpha(mturk_round_3[1:319 , c('TC_02','TC_03','TC_04','TC_05','TC_07','TC_08')])
+
+print("Cronbach's Alpha for all TSC Team Service Culture")
+cronbach.alpha(mturk_round_3[1:319 , 
+                             c('TSC_01','TSC_02','TSC_03','TSC_04','TSC_05','TSC_06','TSC_07','TSC_08','TSC_09',
+                               'TSC_10','TSC_11','TSC_12','TSC_13','TSC_14','TSC_15','TSC_16')])
+
+print("Cronbach's Alpha for all TP Team Purpose")
+cronbach.alpha(mturk_round_3[1:319 , c('TP_03','TP_04','TP_05','TP_06','TP_07')])
+
+
+
+```
+## CFA net (retained items)
+```{r CFA}
+cfa_model <- "
+THP =~ THP_01 + THP_02 + THP_04 + THP_05 + THP_06 + THP_07 + THP_09
+SLB =~ SLB_02 + SLB_03 + SLB_04 + SLB_05 
+TL =~ TL_02 + TL_06 + TL_08 + TL_10
+TT =~ TT_02 + TT_04 + TT_06 + TT_08 + TT_10
+TC =~ TC_04 + TC_05 + TC_07 + TC_08
+TSC =~ TSC_02 + TSC_03 + TSC_05 + TSC_09 + TSC_11 + TSC_12 + TSC_15 + TSC_16
+TP =~ TP_03 + TP_04 + TP_05 + TP_06 + TP_07
+TL_02 ~~ TT_02
+THP_05 ~~ THP_06
+SLB_03 ~~ SLB_05
+TT_06 ~~ TT_10
+TT_04 ~~ TSC_05
+TP_04 ~~ TP_05
+THP_04 ~~ THP_05
+TC_05 ~~ TC_08
+TC_04 ~~ TSC_15
+THP_02 ~~ TSC_02
+TSC_03 ~~ TSC_05
+TL_08 ~~ TT_08
+THP_01 ~~ TT_02
+SLB_03 ~~ TSC_03
+TT_02 ~~ TT_04
+THP_07 ~~ THP_09
+THP_01 ~~ THP_04
+TSC_12 ~~ TSC_16
+TP_03 ~~ TP_07
+TP_04 ~~ TP_06
+SLB_03 ~~ TSC_02
+TC_04 ~~ TC_07
+TC_08 ~~ TSC_02
+TC_04 ~~ TSC_11
+TC_07 ~~ TP_03
+THP_06 ~~ SLB_03
+THP_05 ~~ SLB_02
+THP_09 ~~ TL_10
+TSC_11 ~~ TSC_12
+
+  "
+cfa_results <- cfa(model = cfa_model, data = mturk_round_3)
+summary(cfa_results, standardized = TRUE, fit.measures = TRUE, ci=TRUE)
+lavInspect(cfa_results, "cor.lv")
+
+```
+
+## CFA model indices 
+```{r} 
+# this line reports suggestions for allowing error correlation between two items  
+modindices(cfa_results, sort = TRUE, maximum.number = 25)
+
+```
+
+
+## Cronbach a: retained items
+
+```{r}
+# Calculate Cronbach's Alpha for retained items  
+
+print("Cronbach's Alpha for retained THP Team Performance")
+cronbach.alpha(mturk_round_3[1:319 ,
+                             c('THP_01','THP_02','THP_04','THP_05','THP_06','THP_07','THP_09')])
+
+print("Cronbach's Alpha for retained SLB Servant Leadership Behaviors")
+cronbach.alpha(mturk_round_3[1:319 , 
+                             c('SLB_02','SLB_03','SLB_04','SLB_05')])
+
+print("Cronbach's Alpha for retained TL Trust in Leader")
+cronbach.alpha(mturk_round_3[1:319 , 
+                             c('TL_02','TL_06','TL_08','TL_10')])
+
+print("Cronbach's Alpha for retained TT Trust in Team")
+cronbach.alpha(mturk_round_3[1:319 ,
+                             c('TT_02','TT_04','TT_06','TT_08','TT_10')])
+
+print("Cronbach's Alpha for retained TC Team Cohesion")
+cronbach.alpha(mturk_round_3[1:319 , c('TC_04','TC_05','TC_07','TC_08')])
+
+print("Cronbach's Alpha for retained TSC Team Service Culture")
+cronbach.alpha(mturk_round_3[1:319 , 
+                             c('TSC_02','TSC_03','TSC_05','TSC_09','TSC_11','TSC_12','TSC_15','TSC_16')])
+
+print("Cronbach's Alpha for retained TP Team Purpose")
+cronbach.alpha(mturk_round_3[1:319 , c('TP_03','TP_04','TP_05','TP_06','TP_07')])
+
+
+
+```
+
+
+## SEM full 
+Standardized Moderation Effect in a Path Model by stdmod_lavaan()
+From https://cran.r-project.org/web/packages/stdmod/vignettes/stdmod_lavaan.html
+full model just to see what happens
+mediator is TSC with 4 antecedent IVs
+moderator is TSO attenuating the effect of mediator TSC on dependent variable THP
+
+```{r SEM full}
+std_model_full <- "
+THP =~ THP_01 + THP_02 + THP_03 + THP_04 + THP_05 + THP_06 + THP_07 + THP_08 + THP_09
+SLB =~ SLB_01 + SLB_02 + SLB_03 + SLB_04 + SLB_05 + SLB_06 + SLB_07 
+TL =~ TL_01 + TL_02 + TL_03 + TL_04 + TL_05 + TL_06 + TL_07 + TL_08 + TL_09 + TL_10
+TT =~ TT_01 + TT_02 + TT_03 + TT_04 + TT_05 + TT_06 + TT_07 + TT_08 + TT_09 + TT_10
+TC =~ TC_02 + TC_03 + TC_04 + TC_05 + TC_07 + TC_08
+TSC =~ TSC_01 + TSC_02 + TSC_03 + TSC_04 + TSC_05 + TSC_06 + TSC_07 + TSC_08 + TSC_09 
+        + TSC_10 + TSC_11 + TSC_12 + TSC_13 + TSC_14 + TSC_15 + TSC_16
+TP =~ TP_03 + TP_04 + TP_05 + TP_06 + TP_07
+
+TSC ~ SLB + TL + TT + TC
+THP ~ TSC + TP + TSO_01 + TSC*TSO_01 + TS_01 
+  "
+std_model_full_results <- sem(std_model_full, mturk_round_3, fixed.x = FALSE)
+summary(std_model_full_results, standardized = TRUE, fit.measures = TRUE, ci=TRUE)
+lavInspect(std_model_full_results, "cor.lv") 
+
+```
+
+## SEM net (1 interaction) 
+Standardized Moderation Effect in a Path Model by stdmod_lavaan()
+From https://cran.r-project.org/web/packages/stdmod/vignettes/stdmod_lavaan.html
+in round 1, we removed TL trust in leader and TT trust in team 
+dependent variable THP
+mediator is TSC with 4 antecedent IVs
+moderator is TSO attenuating the effect of mediator TSC on dependent variable THP
+round 2 post-EFA items with std.all cutoff < 0.6 are in the SEM results below
+
+```{r SEM net}
+std_model_net <- "
+THP =~ THP_01 + THP_02 + THP_04 + THP_05 + THP_06 + THP_07 + THP_09
+SLB =~ SLB_02 + SLB_03 + SLB_04 + SLB_05 
+TL =~ TL_02 + TL_06 + TL_08 + TL_10
+TT =~ TT_02 + TT_04 + TT_06 + TT_08 + TT_10
+TC =~ TC_04 + TC_05 + TC_07 + TC_08
+TSC =~ TSC_02 + TSC_03 + TSC_05 + TSC_09 + TSC_11 + TSC_12 + TSC_15 + TSC_16
+TP =~ TP_03 + TP_04 + TP_05 + TP_06 + TP_07
+
+TL_02 ~~ TT_02
+THP_05 ~~ THP_06
+SLB_03 ~~ SLB_05
+TT_06 ~~ TT_10
+TT_04 ~~ TSC_05
+TP_04 ~~ TP_05
+THP_04 ~~ THP_05
+TC_05 ~~ TC_08
+TC_04 ~~ TSC_15
+THP_02 ~~ TSC_02
+TSC_03 ~~ TSC_05
+TL_08 ~~ TT_08
+THP_01 ~~ TT_02
+SLB_03 ~~ TSC_03
+TT_02 ~~ TT_04
+THP_07 ~~ THP_09
+THP_01 ~~ THP_04
+TSC_12 ~~ TSC_16
+TP_03 ~~ TP_07
+TP_04 ~~ TP_06
+SLB_03 ~~ TSC_02
+TC_04 ~~ TC_07
+TC_08 ~~ TSC_02
+TC_04 ~~ TSC_11
+TC_07 ~~ TP_03
+THP_06 ~~ SLB_03
+THP_05 ~~ SLB_02
+THP_09 ~~ TL_10
+TSC_11 ~~ TSC_12
+
+TSC ~ SLB + TL + TT + TC
+THP ~ TSC + TP + TSO_01 + TSC*TSO_01 + TS_01 
+
+  "
+std_model_net_results <- sem(std_model_net, mturk_round_3, fixed.x = FALSE)
+summary(std_model_net_results, standardized = TRUE, fit.measures = TRUE, ci=TRUE)
+lavInspect(std_model_net_results, "cor.lv")
+
+```
+
+
+## HTMT example
+```{r}
+# view the example data
+HolzingerSwineford1939
+
+# model + data setup 
+HS.model <- ' visual  =~ x1 + x2 + x3
+              textual =~ x4 + x5 + x6
+              speed   =~ x7 + x8 + x9 '
+
+dat <- HolzingerSwineford1939[, paste0("x", 1:9)]
+htmt(HS.model, dat)
+
+## save covariance matrix
+HS.cov <- cov(HolzingerSwineford1939[, paste0("x", 1:9)])
+## HTMT using arithmetic mean
+htmt(HS.model, sample.cov = HS.cov, htmt2 = FALSE)
+```
+
+
+## HTMT
+```{r}
+# set up model + data in the htmt object
+htmt(std_model_net, mturk_round_3)
+
+## save covariance matrix
+mturk_cov <- cov(mturk_round_3)
+
+## create HTMT matrix using arithmetic mean
+htmt(std_model_net, sample.cov = mturk_cov, htmt2 = FALSE)
+
+```
+
+
+## VIF 
+1. Create a dummy variable
+2. Regress the dummy variable against the independent variables
+3. Estimate the VIFs
+
+```{r}
+
+#dummy <- rbinom(nrow(mturk_round_3), 1, 0.5)
+#vif_model <- lm(std_model_net_results, data = mturk_round_3)
+vif(std_model_net_results)
+
+```
+
+
+## SEM net (2 interactions) 
+Standardized Moderation Effect in a Path Model by stdmod_lavaan()
+From https://cran.r-project.org/web/packages/stdmod/vignettes/stdmod_lavaan.html
+in round 1, we removed TL trust in leader and TT trust in team 
+dependent variable THP
+mediator is TSC with 4 antecedent IVs
+moderator is TSO attenuating the effect of mediator TSC on dependent variable THP
+round 2 post-EFA items with std.all cutoff < 0.6 are in the SEM results below
+
+```{r SEM net with TSC*TP interaction}
+std_model_net_interact <- "
+THP =~ THP_01 + THP_02 + THP_04 + THP_05 + THP_06 + THP_07 + THP_09
+SLB =~ SLB_02 + SLB_03 + SLB_04 + SLB_05 
+TL =~ TL_02 + TL_06 + TL_08 + TL_10
+TT =~ TT_02 + TT_04 + TT_06 + TT_08 + TT_10
+TC =~ TC_04 + TC_05 + TC_07 + TC_08
+TSC =~ TSC_02 + TSC_03 + TSC_05 + TSC_09 + TSC_11 + TSC_12 + TSC_15 + TSC_16
+TP =~ TP_03 + TP_04 + TP_05 + TP_06 + TP_07
+
+TSC ~ SLB + TL + TT + TC
+THP ~ TSC + TP + TP*TSC + TSO_01 + TSO_01*TSC + TS_01 
+
+  "
+std_model_net_interact_results <- sem(std_model_net_interact, mturk_round_3, fixed.x = FALSE)
+summary(std_model_net_interact_results, standardized = TRUE, fit.measures = TRUE, ci=TRUE)
+lavInspect(std_model_net_interact_results, "cor.lv")
+
+```
+
+
+## Robustness check setup
+THP ~ TSC + TP + TSC*TP + TSO_01 + TSC*TSO_01 + TS_01 
+and create two new variable to replace the line above 
+aggregate TSC, TP so we use average in the model and subtract the value from mean to make it mean-centered
+don't need standard error for mean-centered subtract the value from the mean
+
+1. create a new variable avg_TSC equal to the sum of all items divided by 8 (avg_TSC)
+2. calculate the mean of avg_TSC and subtract this from avg_TSC on each obs. to create mean_centered_avg_TSC
+3. repeat for TP
+
+```{r}
+mturk_round_3$avg_TSC <- rowSums(mturk_round_3[,c("TSC_02", "TSC_03", "TSC_05", 
+                                                  "TSC_09", "TSC_11", "TSC_12", "TSC_15", "TSC_16")]) / 8
+
+mturk_round_3$mean_centered_avg_TSC <- mturk_round_3$avg_TSC - mean(mturk_round_3$avg_TSC)
+
+mturk_round_3$avg_TP <- rowSums(mturk_round_3[,c("TP_03", "TP_04", "TP_05", 
+                                                  "TP_06", "TP_07")]) / 5
+
+mturk_round_3$mean_centered_avg_TP <- mturk_round_3$avg_TP - mean(mturk_round_3$avg_TP)
+
+```
+
+
+## SEM net (new interaction term)
+4. multiply mean centered avg TSC with mean centered avg TP to create the new interaction term
+5. then test TP*TSC to see whether there is any difference
+
+```{r SEM net}
+std_model_net <- "
+THP =~ THP_01 + THP_02 + THP_04 + THP_05 + THP_06 + THP_07 + THP_09
+SLB =~ SLB_02 + SLB_03 + SLB_04 + SLB_05 
+TL =~ TL_02 + TL_06 + TL_08 + TL_10
+TT =~ TT_02 + TT_04 + TT_06 + TT_08 + TT_10
+TC =~ TC_04 + TC_05 + TC_07 + TC_08
+TSC =~ TSC_02 + TSC_03 + TSC_05 + TSC_09 + TSC_11 + TSC_12 + TSC_15 + TSC_16
+TP =~ TP_03 + TP_04 + TP_05 + TP_06 + TP_07
+
+TSC ~ SLB + TL + TT + TC
+THP ~ TSC + TP + mean_centered_avg_TSC*mean_centered_avg_TP + TSO_01 + TSC*TSO_01 + TS_01 
+  "
+std_model_net_results <- sem(std_model_net, mturk_round_3, fixed.x = FALSE)
+summary(std_model_net_results, standardized = TRUE, fit.measures = TRUE, ci=TRUE)
+lavInspect(std_model_net_results, "cor.lv")
+
+```
+
+
+```{r}
+
+```
+
+
+
+## SEM + CTRL vars (1 interaction) 
+Standardized Moderation Effect in a Path Model by stdmod_lavaan()
+From https://cran.r-project.org/web/packages/stdmod/vignettes/stdmod_lavaan.html
+in round 1, we removed TL trust in leader and TT trust in team 
+dependent variable THP
+mediator is TSC with 4 antecedent IVs
+moderator is TSO attenuating the effect of mediator TSC on dependent variable THP
+round 2 post-EFA items with std.all cutoff < 0.6 are in the SEM results below
+
+```{r SEM net + CTRL vars (1 interaction) }
+std_model_net <- "
+THP =~ THP_01 + THP_02 + THP_04 + THP_05 + THP_06 + THP_07 + THP_09
+SLB =~ SLB_02 + SLB_03 + SLB_04 + SLB_05 
+TL =~ TL_02 + TL_06 + TL_08 + TL_10
+TT =~ TT_02 + TT_04 + TT_06 + TT_08 + TT_10
+TC =~ TC_04 + TC_05 + TC_07 + TC_08
+TSC =~ TSC_02 + TSC_03 + TSC_05 + TSC_09 + TSC_11 + TSC_12 + TSC_15 + TSC_16
+TP =~ TP_03 + TP_04 + TP_05 + TP_06 + TP_07
+
+TSC ~ SLB + TL + TT + TC + ORG_VIRTUAL
+THP ~ TSC + TP + TSO_01 + TSC*TSO_01 + TS_01
+  "
+std_model_net_results <- sem(std_model_net, mturk_round_3, fixed.x = FALSE)
+summary(std_model_net_results, standardized = TRUE, fit.measures = TRUE, ci=TRUE)
+lavInspect(std_model_net_results, "cor.lv")
+
+```
+
+
+## Descriptives
+ORG_VIRTUAL
+DURATION
+EXP_TOTAL
+EXP_MEMBER
+EXP_LEADER
+EXP_INDUSTRY
+AGE
+CAT_INDUSTRY
+CAT_PURPOSE
+CAT_FORMING
+CAT_LEADER
+
+```{r Descriptives}
+summary(mturk_round_3[1-399,c('ORG_VIRTUAL',
+                              'DURATION','EXP_TOTAL','EXP_MEMBER','EXP_LEADER',
+                              'EXP_INDUSTRY','AGE')])
+
+```
+
+Note the full measurement model:
+    THP =~ THP_01 + THP_02 + THP_03 + THP_04 + THP_05 + THP_06 + THP_07 + THP_08 + THP_09
+    SLB =~ SLB_01 + SLB_02 + SLB_03 + SLB_04 + SLB_05 + SLB_06 + SLB_07 
+    TL =~ TL_01 + TL_02 + TL_03 + TL_04 + TL_05 + TL_06 + TL_07 + TL_08 + TL_09 + TL_10
+    TT =~ TT_01 + TT_02 + TT_03 + TT_04 + TT_05 + TT_06 + TT_07 + TT_08 + TT_09 + TT_10
+    TC =~ TC_02 + TC_03 + TC_04 + TC_05 + TC_07 + TC_08
+    TSC =~ TSC_01 + TSC_02 + TSC_03 + TSC_04 + TSC_05 + TSC_06 + TSC_07 + TSC_08 + TSC_09 
+            + TSC_10 + TSC_11 + TSC_12 + TSC_13 + TSC_14 + TSC_15 + TSC_16
+    TP =~ TP_03 + TP_04 + TP_05 + TP_06 + TP_07
+    
+    TSC ~ SLB + TL + TT + TC
+    THP ~ TSC + TP + TSO_01 + TSC*TSO_01 + TS_01 
+    
+    
+Note the measurement model items
+    'THP_01','THP_02','THP_03','THP_04','THP_05','THP_06','THP_07','THP_08','THP_09'
+    'SLB_01','SLB_02','SLB_03','SLB_04','SLB_05','SLB_06','SLB_07'
+    'TL_01','TL_02','TL_03','TL_04','TL_05','TL_06','TL_07','TL_08','TL_09','TL_10'
+    'TT_01','TT_02','TT_03','TT_04','TT_05','TT_06','TT_07','TT_08','TT_09','TT_10'
+    'TC_02','TC_03','TC_04','TC_05','TC_07','TC_08'
+    'TSC_01','TSC_02','TSC_03','TSC_04','TSC_05','TSC_06','TSC_07','TSC_08','TSC_09',
+    'TSC_10','TSC_11','TSC_12','TSC_13','TSC_14','TSC_15','TSC_16'
+    'TP_03','TP_04','TP_05','TP_06','TP_07'
+    'TSO_01'
+    'TS_01'
+
+
+Note the control variables with numeric values:
+    'ORG_VIRTUAL','EXP_TOTAL','EXP_MEMBER','EXP_LEADER','EXP_INDUSTRY','AGE'
+    
+
+Note the control variable with continuous values:
+    'DURATION'
+
+
+Note the control variables with discrete / categorical values:
+    'CAT_INDUSTRY','CAT_PURPOSE','CAT_FORMING','CAT_LEADER'
+
+
+```{r SEM new chunk}
+df <- (mturk_round_3[,c('ORG_VIRTUAL','DURATION','EXP_TOTAL','EXP_MEMBER',
+                        'EXP_LEADER','EXP_INDUSTRY','AGE','CAT_INDUSTRY',
+                        'CAT_PURPOSE','CAT_FORMING','CAT_LEADER')])
+
+#create summary table
+#describe(df)
+
+#count(df, ORG_VIRTUAL, name='Count', .drop=FALSE)
+freq_table(df, ORG_VIRTUAL)
+freq_table(df, EXP_TOTAL)
+freq_table(df, EXP_MEMBER)
+freq_table(df, EXP_LEADER)
+freq_table(df, EXP_INDUSTRY)
+freq_table(df, AGE)
+freq_table(df, CAT_INDUSTRY)
+freq_table(df, CAT_PURPOSE)
+freq_table(df, CAT_FORMING)
+freq_table(df, CAT_LEADER)
+
+
+#'THP_01','THP_02','THP_03','THP_04','THP_05','THP_06','THP_07','THP_08','THP_09'
+#'SLB_01','SLB_02','SLB_03','SLB_04','SLB_05','SLB_06','SLB_07'
+#'TL_01','TL_02','TL_03','TL_04','TL_05','TL_06','TL_07','TL_08','TL_09','TL_10'
+#'TT_01','TT_02','TT_03','TT_04','TT_05','TT_06','TT_07','TT_08','TT_09','TT_10'
+#'TC_02','TC_03','TC_04','TC_05','TC_07','TC_08'
+#'TSC_01','TSC_02','TSC_03','TSC_04','TSC_05','TSC_06','TSC_07','TSC_08','TSC_09',
+#  'TSC_10','TSC_11','TSC_12','TSC_13','TSC_14','TSC_15','TSC_16'
+#'TP_03','TP_04','TP_05','TP_06','TP_07'
+#TSO_01
+#TS_01
+
+#create summary table, grouped by a specific variable
+#describeBy(mturk_round_3, group=mturk_round_3$ORG_VIRTUAL)
+
+```
+
+
+
+```{r SEM new chunk}
+
+```
+
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent 
+printing of the R code that generated the plot.
